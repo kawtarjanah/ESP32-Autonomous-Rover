@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESP32 Car - Pro Analog</title>
+<style>
+  :root{
+    --bg:#0b1220; --card:#0f1a2f; --stroke:rgba(255,255,255,.08);
+    --txt:#e5e7eb; --muted:rgba(255,255,255,.65);
+    --blue:#3b82f6; --red:#ef4444; --green:#22c55e;
+  }
+  body{margin:0; font-family:system-ui,Arial; background:linear-gradient(160deg,#050816,#0b1220); color:var(--txt);}
+  .wrap{max-width:860px; margin:auto; padding:18px;}
+  .header{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px;}
+  .title h1{font-size:20px; margin:0;}
+  .title p{margin:4px 0 0; color:var(--muted); font-size:13px;}
+  .grid{display:grid; grid-template-columns:1fr; gap:14px;}
+  @media(min-width:800px){ .grid{grid-template-columns:1.2fr .8fr;} }
+  .card{background:rgba(15,26,47,.85); border:1px solid var(--stroke); border-radius:18px; padding:16px; box-shadow:0 20px 50px rgba(0,0,0,.35);}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
+  .pill{padding:8px 12px; border-radius:999px; border:1px solid var(--stroke); color:var(--muted); font-size:13px;}
+  .btn{padding:12px 14px; border-radius:14px; border:1px solid var(--stroke); background:rgba(255,255,255,.06); color:var(--txt); font-weight:600;}
+  .btn:active{transform:scale(.99);}
+  .btnStop{background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.35);}
+  .btnSafe{background:rgba(34,197,94,.10); border-color:rgba(34,197,94,.35);}
+  input[type=range]{width:100%;}
+  canvas{width:100%; max-width:360px; aspect-ratio:1/1; background:rgba(255,255,255,.04); border:1px solid var(--stroke); border-radius:22px; touch-action:none;}
+  .label{color:var(--muted); font-size:13px; margin-top:10px;}
+  .big{font-size:28px; font-weight:800;}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">
+        <h1>🚗 ESP32 Car Control — Pro (Analog Joystick)</h1>
+        <p>Joystick tactile analog (x,y) + limite de vitesse. URL ESP32: <span class="mono">192.168.4.1</span></p>
+      </div>
+      <div class="row">
+        <div class="pill">Mode: Analog</div>
+        <div class="pill">Commande: <span class="mono">/drive?x=&y=&max=</span></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <div class="label">Joystick (glisse ton doigt)</div>
+            <div class="big"><span id="xyTxt" class="mono">x=0  y=0</span></div>
+          </div>
+          <button class="btn btnStop" onclick="hardStop()">🛑 STOP</button>
+        </div>
+
+        <div style="margin-top:12px; display:flex; justify-content:center;">
+          <canvas id="joy" width="360" height="360"></canvas>
+        </div>
+
+        <div class="label">Limite vitesse (0–255): <b id="maxTxt">170</b></div>
+        <input id="maxSlider" type="range" min="0" max="255" value="170"
+               oninput="maxTxt.textContent=this.value">
+
+        <div class="row" style="margin-top:12px;">
+          <button class="btn btnSafe" onclick="center()">🎯 Recentre</button>
+          <button class="btn" onclick="sendOnce()">📡 Envoyer 1 fois</button>
+          <div class="pill">Envoi auto: <b id="hzTxt">15 Hz</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Statut</div>
+        <div class="row" style="margin-top:8px;">
+          <div class="pill">MAX: <span class="mono" id="maxShow">170</span></div>
+          <div class="pill">Dernier: <span class="mono" id="lastReq">—</span></div>
+          <div class="pill">Ping: <span class="mono" id="ping">—</span></div>
+        </div>
+
+        <div class="label" style="margin-top:14px;">Conseils</div>
+        <ul style="color:var(--muted); line-height:1.5; margin-top:8px;">
+          <li>Y positif = avant, Y négatif = arrière</li>
+          <li>X positif = droite, X négatif = gauche</li>
+          <li>Relâche le doigt → auto STOP</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById('joy');
+const ctx = canvas.getContext('2d');
+
+let x=0, y=0;         // -100..100
+let isDown=false;
+let sendTimer=null;
+let lastPingMs = 0;
+
+function draw(){
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // base
+  ctx.beginPath();
+  ctx.arc(W/2,H/2,150,0,Math.PI*2);
+  ctx.fillStyle="rgba(255,255,255,0.05)";
+  ctx.fill();
+  ctx.lineWidth=2;
+  ctx.strokeStyle="rgba(255,255,255,0.10)";
+  ctx.stroke();
+
+  // crosshair
+  ctx.beginPath();
+  ctx.moveTo(W/2, H/2-150);
+  ctx.lineTo(W/2, H/2+150);
+  ctx.moveTo(W/2-150, H/2);
+  ctx.lineTo(W/2+150, H/2);
+  ctx.strokeStyle="rgba(255,255,255,0.08)";
+  ctx.stroke();
+
+  // knob position from x,y
+  const px = W/2 + (x/100)*120;
+  const py = H/2 - (y/100)*120;
+
+  // knob
+  ctx.beginPath();
+  ctx.arc(px,py,36,0,Math.PI*2);
+  ctx.fillStyle="rgba(59,130,246,0.35)";
+  ctx.fill();
+  ctx.lineWidth=3;
+  ctx.strokeStyle="rgba(59,130,246,0.75)";
+  ctx.stroke();
+}
+
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+function setXYFromPointer(clientX, clientY){
+  const r = canvas.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top + r.height/2;
+
+  let dx = (clientX - cx) / (r.width/2);   // -1..1
+  let dy = (cy - clientY) / (r.height/2);  // -1..1 (up positive)
+
+  // radial clamp (circle)
+  const mag = Math.hypot(dx, dy);
+  if(mag > 0.85){ dx = dx*(0.85/mag); dy = dy*(0.85/mag); }
+
+  x = Math.round(clamp(dx, -1, 1) * 100);
+  y = Math.round(clamp(dy, -1, 1) * 100);
+
+  document.getElementById('xyTxt').textContent = `x=${x}  y=${y}`;
+  draw();
+}
+
+function startSendLoop(){
+  if(sendTimer) return;
+  sendTimer = setInterval(sendDrive, 66); // ~15Hz
+}
+
+function stopSendLoop(){
+  if(!sendTimer) return;
+  clearInterval(sendTimer);
+  sendTimer = null;
+}
+
+async function sendDrive(){
+  const max = Number(document.getElementById('maxSlider').value);
+  document.getElementById('maxShow').textContent = max;
+  const url = `/drive?x=${x}&y=${y}&max=${max}`;
+  document.getElementById('lastReq').textContent = url;
+
+  const t0 = performance.now();
+  try{
+    await fetch(url, {cache:"no-store"});
+    lastPingMs = Math.round(performance.now() - t0);
+    document.getElementById('ping').textContent = `${lastPingMs} ms`;
+  }catch(e){
+    document.getElementById('ping').textContent = `ERR`;
+  }
+}
+
+function hardStop(){
+  x=0; y=0;
+  document.getElementById('xyTxt').textContent = `x=0  y=0`;
+  draw();
+  fetch('/stop', {cache:"no-store"});
+}
+
+function center(){ hardStop(); }
+
+function sendOnce(){ sendDrive(); }
+
+// Touch + Mouse
+canvas.addEventListener('pointerdown', (e)=>{
+  isDown = true;
+  canvas.setPointerCapture(e.pointerId);
+  setXYFromPointer(e.clientX, e.clientY);
+  startSendLoop();
+});
+
+canvas.addEventListener('pointermove', (e)=>{
+  if(!isDown) return;
+  setXYFromPointer(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('pointerup', ()=>{
+  isDown=false;
+  stopSendLoop();
+  hardStop();
+});
+
+document.getElementById('maxSlider').addEventListener('input', (e)=>{
+  document.getElementById('maxTxt').textContent = e.target.value;
+  document.getElementById('maxShow').textContent = e.target.value;
+});
+
+// Init
+document.getElementById('maxTxt').textContent = document.getElementById('maxSlider').value;
+document.getElementById('maxShow').textContent = document.getElementById('maxSlider').value;
+draw();
+</script>
+</body>
+</html>
