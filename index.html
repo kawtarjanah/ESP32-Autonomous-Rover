@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <img src="Page web.png" width="400">
 <title>ESP32 Car - Pro Analog</title>
 <style>
   :root{
@@ -36,8 +35,8 @@
   <div class="wrap">
     <div class="header">
       <div class="title">
-        <h1>ESP32 Car Control — Pro (Analog Joystick)</h1>
-        <p>Joystick tactile analog (x,y) + limite de vitesse. URL ESP32: <span class="mono">192.168.4.1</span></p>
+        <h1>ESP32 Car Control - Pro (Analog Joystick)</h1>
+        <p>Joystick tactile analogique (x,y) + limite de vitesse. URL ESP32: <span class="mono">192.168.4.1</span></p>
       </div>
       <div class="row">
         <div class="pill">Mode: Analog</div>
@@ -52,20 +51,20 @@
             <div class="label">Joystick (glisse ton doigt)</div>
             <div class="big"><span id="xyTxt" class="mono">x=0  y=0</span></div>
           </div>
-          <button class="btn btnStop" onclick="hardStop()">🛑 STOP</button>
+          <button class="btn btnStop" onclick="hardStop()">STOP</button>
         </div>
 
         <div style="margin-top:12px; display:flex; justify-content:center;">
           <canvas id="joy" width="360" height="360"></canvas>
         </div>
 
-        <div class="label">Limite vitesse (0–255): <b id="maxTxt">170</b></div>
+        <div class="label">Limite vitesse (0-255): <b id="maxTxt">170</b></div>
         <input id="maxSlider" type="range" min="0" max="255" value="170"
                oninput="maxTxt.textContent=this.value">
 
         <div class="row" style="margin-top:12px;">
-          <button class="btn btnSafe" onclick="center()">🎯 Recentre</button>
-          <button class="btn" onclick="sendOnce()">📡 Envoyer 1 fois</button>
+          <button class="btn btnSafe" onclick="center()">Recentrer</button>
+          <button class="btn" onclick="sendOnce()">Envoyer 1 fois</button>
           <div class="pill">Envoi auto: <b id="hzTxt">15 Hz</b></div>
         </div>
       </div>
@@ -74,15 +73,15 @@
         <div class="label">Statut</div>
         <div class="row" style="margin-top:8px;">
           <div class="pill">MAX: <span class="mono" id="maxShow">170</span></div>
-          <div class="pill">Dernier: <span class="mono" id="lastReq">—</span></div>
-          <div class="pill">Ping: <span class="mono" id="ping">—</span></div>
+          <div class="pill">Dernier: <span class="mono" id="lastReq">-</span></div>
+          <div class="pill">Ping: <span class="mono" id="ping">-</span></div>
         </div>
 
         <div class="label" style="margin-top:14px;">Conseils</div>
         <ul style="color:var(--muted); line-height:1.5; margin-top:8px;">
           <li>Y positif = avant, Y négatif = arrière</li>
           <li>X positif = droite, X négatif = gauche</li>
-          <li>Relâche le doigt → auto STOP</li>
+          <li>Relâche le doigt = arrêt automatique</li>
         </ul>
       </div>
     </div>
@@ -92,60 +91,60 @@
 const canvas = document.getElementById('joy');
 const ctx = canvas.getContext('2d');
 
-let x=0, y=0;         // -100..100
-let isDown=false;
-let sendTimer=null;
+let x = 0, y = 0;
+let isDown = false;
+let sendTimer = null;
 let lastPingMs = 0;
 
 function draw(){
-  const W=canvas.width, H=canvas.height;
+  const W = canvas.width, H = canvas.height;
   ctx.clearRect(0,0,W,H);
 
-  // base
   ctx.beginPath();
   ctx.arc(W/2,H/2,150,0,Math.PI*2);
-  ctx.fillStyle="rgba(255,255,255,0.05)";
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
   ctx.fill();
-  ctx.lineWidth=2;
-  ctx.strokeStyle="rgba(255,255,255,0.10)";
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
   ctx.stroke();
 
-  // crosshair
   ctx.beginPath();
   ctx.moveTo(W/2, H/2-150);
   ctx.lineTo(W/2, H/2+150);
   ctx.moveTo(W/2-150, H/2);
   ctx.lineTo(W/2+150, H/2);
-  ctx.strokeStyle="rgba(255,255,255,0.08)";
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.stroke();
 
-  // knob position from x,y
   const px = W/2 + (x/100)*120;
   const py = H/2 - (y/100)*120;
 
-  // knob
   ctx.beginPath();
   ctx.arc(px,py,36,0,Math.PI*2);
-  ctx.fillStyle="rgba(59,130,246,0.35)";
+  ctx.fillStyle = "rgba(59,130,246,0.35)";
   ctx.fill();
-  ctx.lineWidth=3;
-  ctx.strokeStyle="rgba(59,130,246,0.75)";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(59,130,246,0.75)";
   ctx.stroke();
 }
 
-function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+function clamp(v,min,max){
+  return Math.max(min, Math.min(max, v));
+}
 
 function setXYFromPointer(clientX, clientY){
   const r = canvas.getBoundingClientRect();
   const cx = r.left + r.width/2;
   const cy = r.top + r.height/2;
 
-  let dx = (clientX - cx) / (r.width/2);   // -1..1
-  let dy = (cy - clientY) / (r.height/2);  // -1..1 (up positive)
+  let dx = (clientX - cx) / (r.width/2);
+  let dy = (cy - clientY) / (r.height/2);
 
-  // radial clamp (circle)
   const mag = Math.hypot(dx, dy);
-  if(mag > 0.85){ dx = dx*(0.85/mag); dy = dy*(0.85/mag); }
+  if(mag > 0.85){
+    dx = dx * (0.85/mag);
+    dy = dy * (0.85/mag);
+  }
 
   x = Math.round(clamp(dx, -1, 1) * 100);
   y = Math.round(clamp(dy, -1, 1) * 100);
@@ -156,7 +155,7 @@ function setXYFromPointer(clientX, clientY){
 
 function startSendLoop(){
   if(sendTimer) return;
-  sendTimer = setInterval(sendDrive, 66); // ~15Hz
+  sendTimer = setInterval(sendDrive, 66);
 }
 
 function stopSendLoop(){
@@ -182,17 +181,21 @@ async function sendDrive(){
 }
 
 function hardStop(){
-  x=0; y=0;
+  x = 0;
+  y = 0;
   document.getElementById('xyTxt').textContent = `x=0  y=0`;
   draw();
   fetch('/stop', {cache:"no-store"});
 }
 
-function center(){ hardStop(); }
+function center(){
+  hardStop();
+}
 
-function sendOnce(){ sendDrive(); }
+function sendOnce(){
+  sendDrive();
+}
 
-// Touch + Mouse
 canvas.addEventListener('pointerdown', (e)=>{
   isDown = true;
   canvas.setPointerCapture(e.pointerId);
@@ -206,7 +209,7 @@ canvas.addEventListener('pointermove', (e)=>{
 });
 
 canvas.addEventListener('pointerup', ()=>{
-  isDown=false;
+  isDown = false;
   stopSendLoop();
   hardStop();
 });
@@ -216,13 +219,9 @@ document.getElementById('maxSlider').addEventListener('input', (e)=>{
   document.getElementById('maxShow').textContent = e.target.value;
 });
 
-// Init
 document.getElementById('maxTxt').textContent = document.getElementById('maxSlider').value;
 document.getElementById('maxShow').textContent = document.getElementById('maxSlider').value;
 draw();
-
 </script>
 </body>
-
 </html>
-
