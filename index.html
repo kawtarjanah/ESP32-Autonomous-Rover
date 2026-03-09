@@ -1,227 +1,499 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ESP32 Car - Pro Analog</title>
-<style>
-  :root{
-    --bg:#0b1220; --card:#0f1a2f; --stroke:rgba(255,255,255,.08);
-    --txt:#e5e7eb; --muted:rgba(255,255,255,.65);
-    --blue:#3b82f6; --red:#ef4444; --green:#22c55e;
-  }
-  body{margin:0; font-family:system-ui,Arial; background:linear-gradient(160deg,#050816,#0b1220); color:var(--txt);}
-  .wrap{max-width:860px; margin:auto; padding:18px;}
-  .header{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px;}
-  .title h1{font-size:20px; margin:0;}
-  .title p{margin:4px 0 0; color:var(--muted); font-size:13px;}
-  .grid{display:grid; grid-template-columns:1fr; gap:14px;}
-  @media(min-width:800px){ .grid{grid-template-columns:1.2fr .8fr;} }
-  .card{background:rgba(15,26,47,.85); border:1px solid var(--stroke); border-radius:18px; padding:16px; box-shadow:0 20px 50px rgba(0,0,0,.35);}
-  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
-  .pill{padding:8px 12px; border-radius:999px; border:1px solid var(--stroke); color:var(--muted); font-size:13px;}
-  .btn{padding:12px 14px; border-radius:14px; border:1px solid var(--stroke); background:rgba(255,255,255,.06); color:var(--txt); font-weight:600;}
-  .btn:active{transform:scale(.99);}
-  .btnStop{background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.35);}
-  .btnSafe{background:rgba(34,197,94,.10); border-color:rgba(34,197,94,.35);}
-  input[type=range]{width:100%;}
-  canvas{width:100%; max-width:360px; aspect-ratio:1/1; background:rgba(255,255,255,.04); border:1px solid var(--stroke); border-radius:22px; touch-action:none;}
-  .label{color:var(--muted); font-size:13px; margin-top:10px;}
-  .big{font-size:28px; font-weight:800;}
-  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 Autonomous Rover - Web Control</title>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1a2f;
+      --panel-2:#12203a;
+      --stroke:rgba(255,255,255,.08);
+      --text:#e5e7eb;
+      --muted:rgba(255,255,255,.68);
+      --accent:#3b82f6;
+      --danger:#ef4444;
+      --success:#22c55e;
+      --shadow:0 20px 50px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:linear-gradient(160deg,#050816,#0b1220);
+      color:var(--text);
+    }
+
+    .container{
+      max-width:980px;
+      margin:0 auto;
+      padding:24px 18px 40px;
+    }
+
+    .hero-image{
+      width:100%;
+      max-width:680px;
+      display:block;
+      margin:0 auto 24px;
+      border-radius:20px;
+      border:1px solid var(--stroke);
+      box-shadow:var(--shadow);
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:18px;
+    }
+
+    .title-box h1{
+      margin:0 0 6px;
+      font-size:28px;
+      line-height:1.2;
+    }
+
+    .title-box p{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .badges{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .badge{
+      padding:9px 14px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns:1.25fr 0.9fr;
+      gap:18px;
+    }
+
+    @media (max-width:900px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+    }
+
+    .card{
+      background:rgba(15,26,47,.88);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+
+    .section-title{
+      font-size:14px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+
+    .xy-value{
+      font-size:32px;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+
+    .btn{
+      padding:12px 16px;
+      border-radius:14px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+      transition:0.2s ease;
+    }
+
+    .btn:hover{
+      background:rgba(255,255,255,.10);
+    }
+
+    .btn-danger{
+      background:rgba(239,68,68,.12);
+      border-color:rgba(239,68,68,.35);
+    }
+
+    .btn-danger:hover{
+      background:rgba(239,68,68,.18);
+    }
+
+    .btn-success{
+      background:rgba(34,197,94,.10);
+      border-color:rgba(34,197,94,.30);
+    }
+
+    .btn-success:hover{
+      background:rgba(34,197,94,.16);
+    }
+
+    .joystick-wrap{
+      display:flex;
+      justify-content:center;
+      margin-top:14px;
+      margin-bottom:14px;
+    }
+
+    canvas{
+      width:100%;
+      max-width:360px;
+      aspect-ratio:1/1;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--stroke);
+      border-radius:22px;
+      touch-action:none;
+    }
+
+    .slider-box{
+      margin-top:8px;
+    }
+
+    .slider-label{
+      color:var(--muted);
+      font-size:14px;
+      margin-bottom:8px;
+    }
+
+    input[type="range"]{
+      width:100%;
+      cursor:pointer;
+    }
+
+    .status-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .status-item{
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.03);
+    }
+
+    .status-item strong{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:5px;
+      font-weight:600;
+    }
+
+    .mono{
+      font-family:Consolas, Monaco, monospace;
+      word-break:break-word;
+    }
+
+    .tips{
+      margin-top:18px;
+    }
+
+    .tips h3{
+      margin:0 0 10px;
+      font-size:16px;
+    }
+
+    .tips ul{
+      margin:0;
+      padding-left:18px;
+      color:var(--muted);
+      line-height:1.6;
+    }
+
+    .footer-note{
+      margin-top:22px;
+      font-size:12px;
+      color:var(--muted);
+      text-align:center;
+    }
+  </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="header">
-      <div class="title">
-        <h1>ESP32 Car Control - Pro (Analog Joystick)</h1>
-        <p>Joystick tactile analogique (x,y) + limite de vitesse. URL ESP32: <span class="mono">192.168.4.1</span></p>
+  <div class="container">
+
+    <img src="web-interface.png" alt="Interface web ESP32" class="hero-image">
+
+    <div class="topbar">
+      <div class="title-box">
+        <h1>ESP32 Autonomous Rover - Web Control</h1>
+        <p>Interface de contrôle pour rover 4WD piloté par ESP32 via serveur web local.</p>
       </div>
-      <div class="row">
-        <div class="pill">Mode: Analog</div>
-        <div class="pill">Commande: <span class="mono">/drive?x=&y=&max=</span></div>
+
+      <div class="badges">
+        <div class="badge">Mode: Analog</div>
+        <div class="badge">Route: /drive?x=&y=&max=</div>
+        <div class="badge">ESP32: 192.168.4.1</div>
       </div>
     </div>
 
-    <div class="grid">
+    <div class="layout">
+
       <div class="card">
-        <div class="row" style="justify-content:space-between;">
+        <div class="row">
           <div>
-            <div class="label">Joystick (glisse ton doigt)</div>
-            <div class="big"><span id="xyTxt" class="mono">x=0  y=0</span></div>
+            <div class="section-title">Joystick analogique</div>
+            <div class="xy-value mono" id="xyTxt">x=0  y=0</div>
           </div>
-          <button class="btn btnStop" onclick="hardStop()">STOP</button>
+          <button class="btn btn-danger" onclick="hardStop()">STOP</button>
         </div>
 
-        <div style="margin-top:12px; display:flex; justify-content:center;">
+        <div class="joystick-wrap">
           <canvas id="joy" width="360" height="360"></canvas>
         </div>
 
-        <div class="label">Limite vitesse (0-255): <b id="maxTxt">170</b></div>
-        <input id="maxSlider" type="range" min="0" max="255" value="170"
-               oninput="maxTxt.textContent=this.value">
+        <div class="slider-box">
+          <div class="slider-label">Limite de vitesse (0-255): <strong id="maxTxt">170</strong></div>
+          <input id="maxSlider" type="range" min="0" max="255" value="170">
+        </div>
 
-        <div class="row" style="margin-top:12px;">
-          <button class="btn btnSafe" onclick="center()">Recentrer</button>
-          <button class="btn" onclick="sendOnce()">Envoyer 1 fois</button>
-          <div class="pill">Envoi auto: <b id="hzTxt">15 Hz</b></div>
+        <div class="controls">
+          <button class="btn btn-success" onclick="centerJoystick()">Recentrer</button>
+          <button class="btn" onclick="sendOnce()">Envoyer une fois</button>
+          <div class="badge">Envoi auto: <span id="hzTxt">15 Hz</span></div>
         </div>
       </div>
 
       <div class="card">
-        <div class="label">Statut</div>
-        <div class="row" style="margin-top:8px;">
-          <div class="pill">MAX: <span class="mono" id="maxShow">170</span></div>
-          <div class="pill">Dernier: <span class="mono" id="lastReq">-</span></div>
-          <div class="pill">Ping: <span class="mono" id="ping">-</span></div>
+        <div class="section-title">Statut</div>
+
+        <div class="status-grid">
+          <div class="status-item">
+            <strong>Vitesse maximale</strong>
+            <span class="mono" id="maxShow">170</span>
+          </div>
+
+          <div class="status-item">
+            <strong>Dernière commande</strong>
+            <span class="mono" id="lastReq">-</span>
+          </div>
+
+          <div class="status-item">
+            <strong>Ping</strong>
+            <span class="mono" id="ping">-</span>
+          </div>
         </div>
 
-        <div class="label" style="margin-top:14px;">Conseils</div>
-        <ul style="color:var(--muted); line-height:1.5; margin-top:8px;">
-          <li>Y positif = avant, Y négatif = arrière</li>
-          <li>X positif = droite, X négatif = gauche</li>
-          <li>Relâche le doigt = arrêt automatique</li>
-        </ul>
+        <div class="tips">
+          <h3>Instructions</h3>
+          <ul>
+            <li>Y positif : marche avant</li>
+            <li>Y négatif : marche arrière</li>
+            <li>X positif : rotation à droite</li>
+            <li>X négatif : rotation à gauche</li>
+            <li>Relâcher le joystick déclenche l’arrêt automatique</li>
+          </ul>
+        </div>
       </div>
+
+    </div>
+
+    <div class="footer-note">
+      Interface HTML, CSS et JavaScript pour contrôle d’un rover ESP32 via navigateur.
     </div>
   </div>
 
-<script>
-const canvas = document.getElementById('joy');
-const ctx = canvas.getContext('2d');
+  <script>
+    const canvas = document.getElementById("joy");
+    const ctx = canvas.getContext("2d");
 
-let x = 0, y = 0;
-let isDown = false;
-let sendTimer = null;
-let lastPingMs = 0;
+    const xyTxt = document.getElementById("xyTxt");
+    const maxTxt = document.getElementById("maxTxt");
+    const maxShow = document.getElementById("maxShow");
+    const lastReq = document.getElementById("lastReq");
+    const ping = document.getElementById("ping");
+    const maxSlider = document.getElementById("maxSlider");
 
-function draw(){
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0,0,W,H);
+    let x = 0;
+    let y = 0;
+    let isDown = false;
+    let sendTimer = null;
 
-  ctx.beginPath();
-  ctx.arc(W/2,H/2,150,0,Math.PI*2);
-  ctx.fillStyle = "rgba(255,255,255,0.05)";
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(255,255,255,0.10)";
-  ctx.stroke();
+    function clamp(value, min, max){
+      return Math.max(min, Math.min(max, value));
+    }
 
-  ctx.beginPath();
-  ctx.moveTo(W/2, H/2-150);
-  ctx.lineTo(W/2, H/2+150);
-  ctx.moveTo(W/2-150, H/2);
-  ctx.lineTo(W/2+150, H/2);
-  ctx.strokeStyle = "rgba(255,255,255,0.08)";
-  ctx.stroke();
+    function drawJoystick(){
+      const W = canvas.width;
+      const H = canvas.height;
 
-  const px = W/2 + (x/100)*120;
-  const py = H/2 - (y/100)*120;
+      ctx.clearRect(0, 0, W, H);
 
-  ctx.beginPath();
-  ctx.arc(px,py,36,0,Math.PI*2);
-  ctx.fillStyle = "rgba(59,130,246,0.35)";
-  ctx.fill();
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "rgba(59,130,246,0.75)";
-  ctx.stroke();
-}
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, 150, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255,255,255,0.10)";
+      ctx.stroke();
 
-function clamp(v,min,max){
-  return Math.max(min, Math.min(max, v));
-}
+      ctx.beginPath();
+      ctx.moveTo(W / 2, H / 2 - 150);
+      ctx.lineTo(W / 2, H / 2 + 150);
+      ctx.moveTo(W / 2 - 150, H / 2);
+      ctx.lineTo(W / 2 + 150, H / 2);
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.stroke();
 
-function setXYFromPointer(clientX, clientY){
-  const r = canvas.getBoundingClientRect();
-  const cx = r.left + r.width/2;
-  const cy = r.top + r.height/2;
+      const knobX = W / 2 + (x / 100) * 120;
+      const knobY = H / 2 - (y / 100) * 120;
 
-  let dx = (clientX - cx) / (r.width/2);
-  let dy = (cy - clientY) / (r.height/2);
+      ctx.beginPath();
+      ctx.arc(knobX, knobY, 36, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(59,130,246,0.35)";
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(59,130,246,0.80)";
+      ctx.stroke();
+    }
 
-  const mag = Math.hypot(dx, dy);
-  if(mag > 0.85){
-    dx = dx * (0.85/mag);
-    dy = dy * (0.85/mag);
-  }
+    function updateXYText(){
+      xyTxt.textContent = `x=${x}  y=${y}`;
+    }
 
-  x = Math.round(clamp(dx, -1, 1) * 100);
-  y = Math.round(clamp(dy, -1, 1) * 100);
+    function setXYFromPointer(clientX, clientY){
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
 
-  document.getElementById('xyTxt').textContent = `x=${x}  y=${y}`;
-  draw();
-}
+      let dx = (clientX - cx) / (rect.width / 2);
+      let dy = (cy - clientY) / (rect.height / 2);
 
-function startSendLoop(){
-  if(sendTimer) return;
-  sendTimer = setInterval(sendDrive, 66);
-}
+      const magnitude = Math.hypot(dx, dy);
+      if (magnitude > 0.85){
+        dx = dx * (0.85 / magnitude);
+        dy = dy * (0.85 / magnitude);
+      }
 
-function stopSendLoop(){
-  if(!sendTimer) return;
-  clearInterval(sendTimer);
-  sendTimer = null;
-}
+      x = Math.round(clamp(dx, -1, 1) * 100);
+      y = Math.round(clamp(dy, -1, 1) * 100);
 
-async function sendDrive(){
-  const max = Number(document.getElementById('maxSlider').value);
-  document.getElementById('maxShow').textContent = max;
-  const url = `/drive?x=${x}&y=${y}&max=${max}`;
-  document.getElementById('lastReq').textContent = url;
+      updateXYText();
+      drawJoystick();
+    }
 
-  const t0 = performance.now();
-  try{
-    await fetch(url, {cache:"no-store"});
-    lastPingMs = Math.round(performance.now() - t0);
-    document.getElementById('ping').textContent = `${lastPingMs} ms`;
-  }catch(e){
-    document.getElementById('ping').textContent = `ERR`;
-  }
-}
+    function startSendLoop(){
+      if (sendTimer) return;
+      sendTimer = setInterval(sendDrive, 66);
+    }
 
-function hardStop(){
-  x = 0;
-  y = 0;
-  document.getElementById('xyTxt').textContent = `x=0  y=0`;
-  draw();
-  fetch('/stop', {cache:"no-store"});
-}
+    function stopSendLoop(){
+      if (!sendTimer) return;
+      clearInterval(sendTimer);
+      sendTimer = null;
+    }
 
-function center(){
-  hardStop();
-}
+    async function sendDrive(){
+      const max = Number(maxSlider.value);
+      maxShow.textContent = max;
 
-function sendOnce(){
-  sendDrive();
-}
+      const url = `/drive?x=${x}&y=${y}&max=${max}`;
+      lastReq.textContent = url;
 
-canvas.addEventListener('pointerdown', (e)=>{
-  isDown = true;
-  canvas.setPointerCapture(e.pointerId);
-  setXYFromPointer(e.clientX, e.clientY);
-  startSendLoop();
-});
+      const t0 = performance.now();
 
-canvas.addEventListener('pointermove', (e)=>{
-  if(!isDown) return;
-  setXYFromPointer(e.clientX, e.clientY);
-});
+      try{
+        await fetch(url, { cache: "no-store" });
+        const dt = Math.round(performance.now() - t0);
+        ping.textContent = `${dt} ms`;
+      }catch(error){
+        ping.textContent = "ERR";
+      }
+    }
 
-canvas.addEventListener('pointerup', ()=>{
-  isDown = false;
-  stopSendLoop();
-  hardStop();
-});
+    function hardStop(){
+      x = 0;
+      y = 0;
+      updateXYText();
+      drawJoystick();
 
-document.getElementById('maxSlider').addEventListener('input', (e)=>{
-  document.getElementById('maxTxt').textContent = e.target.value;
-  document.getElementById('maxShow').textContent = e.target.value;
-});
+      lastReq.textContent = "/stop";
+      fetch("/stop", { cache: "no-store" }).catch(() => {});
+    }
 
-document.getElementById('maxTxt').textContent = document.getElementById('maxSlider').value;
-document.getElementById('maxShow').textContent = document.getElementById('maxSlider').value;
-draw();
-</script>
+    function centerJoystick(){
+      x = 0;
+      y = 0;
+      updateXYText();
+      drawJoystick();
+    }
+
+    function sendOnce(){
+      sendDrive();
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      isDown = true;
+      canvas.setPointerCapture(e.pointerId);
+      setXYFromPointer(e.clientX, e.clientY);
+      startSendLoop();
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!isDown) return;
+      setXYFromPointer(e.clientX, e.clientY);
+    });
+
+    canvas.addEventListener("pointerup", () => {
+      isDown = false;
+      stopSendLoop();
+      hardStop();
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      isDown = false;
+      stopSendLoop();
+      hardStop();
+    });
+
+    maxSlider.addEventListener("input", (e) => {
+      maxTxt.textContent = e.target.value;
+      maxShow.textContent = e.target.value;
+    });
+
+    maxTxt.textContent = maxSlider.value;
+    maxShow.textContent = maxSlider.value;
+    updateXYText();
+    drawJoystick();
+  </script>
 </body>
 </html>
